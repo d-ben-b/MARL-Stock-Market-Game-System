@@ -324,3 +324,33 @@ class MultiAgentMarketEnv:
         infos = {i: self.portfolios[i] for i in range(self.num_agents)}
 
         return {i: next_state for i in range(self.num_agents)}, rewards, dones, infos
+
+
+def flatten_state(state_dict, portfolio, depth=5):
+    """
+    將環境輸出的 state 轉換為神經網路可吃的 1D numpy array
+    輸出維度: 買價量(10) + 賣價量(10) + 現金(1) + 庫存(1) = 22
+    """
+    features = []
+
+    # 處理買單 (Bids)
+    for i in range(depth):
+        if i < len(state_dict["bids"]):
+            features.append(float(state_dict["bids"][i][0]))  # Price
+            features.append(float(state_dict["bids"][i][1]))  # Quantity
+        else:
+            features.extend([0.0, 0.0])  # 若無掛單則補 0
+
+    # 處理賣單 (Asks)
+    for i in range(depth):
+        if i < len(state_dict["asks"]):
+            features.append(float(state_dict["asks"][i][0]))  # Price
+            features.append(float(state_dict["asks"][i][1]))  # Quantity
+        else:
+            features.extend([0.0, 0.0])
+
+    # 加入自身資產狀態
+    features.append(float(portfolio["cash"]))
+    features.append(float(portfolio["inventory"]))
+
+    return np.array(features, dtype=np.float32)
