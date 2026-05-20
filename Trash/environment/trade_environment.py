@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import uuid
 from collections import deque
 from sortedcontainers import SortedDict
 
@@ -144,7 +145,6 @@ class MatchingEngine:
 
 
 class MultiAgentMarketEnv:
-
     def __init__(
         self,
         num_agents,
@@ -156,18 +156,24 @@ class MultiAgentMarketEnv:
         self.num_agents = num_agents
         self.initial_cash = initial_cash
         self.initial_inventory = initial_inventory
-
         self.heterogeneous_reward = heterogeneous_reward
 
         # 記帳本：紀錄每個 agent 的現金與持倉量
         self.portfolios = {}
-
         # 為了計算 Reward，需要記錄前一步的資產總值
         self.prev_net_worth = {}
 
+        # [新增] 儲存每個 Agent 完整的資產歷史（計算金融指標用）
+        self.net_worth_history = {i: [] for i in range(num_agents)}
+
+        # [新增] 市場全域新聞情緒分數值 [-1, 1]
+        self.current_sentiment = 0.0
+
     def reset(self):
-        """回合重置：清空訂單簿、重置所有 Agent 的資金"""
+        """回合重置：清空訂單簿、重置所有 Agent 的資金與環境變數"""
         self.engine = MatchingEngine()
+        self.current_sentiment = 0.0  # 重置情緒
+        self.net_worth_history = {i: [] for i in range(self.num_agents)}
 
         for i in range(self.num_agents):
             self.portfolios[i] = {
@@ -176,12 +182,29 @@ class MultiAgentMarketEnv:
             }
             initial_net_worth = self.initial_cash + (self.initial_inventory * 100.0)
             self.prev_net_worth[i] = initial_net_worth
+            self.net_worth_history[i].append(initial_net_worth)
 
-        # 回傳初始狀態 (例如深度為 5 的訂單簿快照)
         initial_state = self.engine.get_lob_snapshot(depth=5)
-
-        # 在多代理人環境中，通常會回傳一個 dict，讓每個 agent 拿到自己的 state
         return {i: initial_state for i in range(self.num_agents)}
+
+    def _simulate_noise_trader(self, mid_price):
+        """[新增] 背景雜訊交易員：隨機向市場提供流動性，不計入 Agent 結算"""
+        # 70% 機率每步注入隨機訂單，確保市場有對手盤
+        if np.random.rand() > 0.3:
+            side = "buy" if np.random.rand() > 0.5 else "sell"
+            # 圍繞當前中間價隨機偏離 ±2% 掛單
+            noise_price = round(mid_price * np.random.uniform(0.98, 1.02), 2)
+            noise_qty = int(np.random.randint(5, 50))
+
+            noise_order = Order(
+                order_id=str(uuid.uuid4()),
+                agent_id="NOISE_TRADER",
+                side=side,
+                price=noise_price,
+                quantity=noise_qty,
+            )
+            # 雜訊單直接送入引擎撮合，若有剩餘就會留在訂單簿上提供流動性
+            self.engine.process_order(noise_order)
 
     def step(self, actions):
         """
@@ -189,17 +212,23 @@ class MultiAgentMarketEnv:
         actions: dict 格式，包含每個 agent 想下的單 {agent_id: act_vector}
         act_vector 為 4 維向量: [策略訊號, 方向訊號, 價格訊號, 數量訊號]，值域皆假設為 [-1, 1]
         """
-        import uuid
-
         all_trades = []
 
         # 取得當下市場中間價，作為所有 Agent 掛單的基準參考
         mid_price = 100.0  # 預設基準
         if self.engine.bids and self.engine.asks:
-            # 取出最高買價與最低賣價 (配合 SortedDict 的特性)
             best_bid = list(self.engine.bids.keys())[-1]
             best_ask = list(self.engine.asks.keys())[0]
             mid_price = (best_bid + best_ask) / 2.0
+
+        # 0. [新增] 模擬環境變化：更新新聞文本情緒分數 (隨機漫步模擬，並稍微加入趨勢延續性)
+        sentiment_shock = np.random.normal(0, 0.1)
+        self.current_sentiment = np.clip(
+            self.current_sentiment * 0.9 + sentiment_shock, -1.0, 1.0
+        )
+
+        # 0. [新增] 引入背景雜訊交易員下單
+        self._simulate_noise_trader(mid_price)
 
         # 1. 執行動作 (解析 4D 神經網路輸出並下單)
         for agent_id, act_vector in actions.items():
@@ -220,13 +249,11 @@ class MultiAgentMarketEnv:
             # (3) 根據策略訊號決定價格與掛單模式
             if strategy_signal > 0.3:
                 # 【造市商模式 Market Maker】
-                # 嚴格控制風險，只在中間價附近掛限價單 (例如波動限制在 ±0.5%)
                 price_offset = price_signal * 0.005
                 order_price = round(mid_price * (1 + price_offset), 2)
 
             elif strategy_signal < -0.3:
                 # 【動能交易模式 Trend Follower】
-                # 追求立刻成交，模擬市價單：買方掛極高價掃貨，賣方掛極低價倒貨
                 if side == "buy":
                     order_price = round(mid_price * 1.1, 2)  # 溢價 10%
                 else:
@@ -234,13 +261,11 @@ class MultiAgentMarketEnv:
 
             else:
                 # 【觀望模式 Hold】
-                # 策略訊號介於 [-0.3, 0.3] 之間，本回合不下單
                 continue
 
             # (4) 根據實體資產限制，計算真實下單數量
             if side == "buy":
                 available_cash = self.portfolios[agent_id]["cash"]
-                # 避免除以零的錯誤
                 if order_price > 0:
                     max_affordable_qty = int(available_cash / order_price)
                     order_quantity = int(max_affordable_qty * trade_ratio)
@@ -251,22 +276,23 @@ class MultiAgentMarketEnv:
             # (5) 生成並送出訂單
             if order_quantity > 0:
                 order_id = str(uuid.uuid4())
-                # Order 類別需確保在上方有正確引入
                 order = Order(order_id, agent_id, side, order_price, order_quantity)
                 trades = self.engine.process_order(order)
                 all_trades.extend(trades)
 
-        # 2. 結算交割 (更新現金與庫存)
+        # 2. 結算交割 (更新現金與庫存，避開 NOISE_TRADER)
         for trade in all_trades:
             buyer = trade["buyer_id"]
             seller = trade["seller_id"]
             trade_value = trade["price"] * trade["qty"]
 
-            self.portfolios[buyer]["cash"] -= trade_value
-            self.portfolios[buyer]["inventory"] += trade["qty"]
+            if buyer != "NOISE_TRADER":
+                self.portfolios[buyer]["cash"] -= trade_value
+                self.portfolios[buyer]["inventory"] += trade["qty"]
 
-            self.portfolios[seller]["cash"] += trade_value
-            self.portfolios[seller]["inventory"] -= trade["qty"]
+            if seller != "NOISE_TRADER":
+                self.portfolios[seller]["cash"] += trade_value
+                self.portfolios[seller]["inventory"] -= trade["qty"]
 
         # 3. 取得新狀態 (Next State)
         next_state = self.engine.get_lob_snapshot(depth=5)
@@ -286,10 +312,12 @@ class MultiAgentMarketEnv:
             )
             delta_pnl = current_net_worth - self.prev_net_worth[i]
 
+            # [新增] 將當前淨資產存入歷史紀錄
+            self.net_worth_history[i].append(current_net_worth)
+
             # --- 根據 Flag 切換 Reward 模式 ---
             if not self.heterogeneous_reward:
                 # 【模式 A：純淨市場】
-                # 所有 Agent 在同一起跑線，只看純粹的資產損益變化
                 rewards[i] = delta_pnl
 
             else:
@@ -302,7 +330,6 @@ class MultiAgentMarketEnv:
                 elif i == 1:
                     # Agent 1：保守型交易員 (Conservative) - 手續費/過度交易懲罰
                     trade_penalty = 0
-                    # 判斷這回合有沒有發生資產總值變化(粗略代表有交易或市場大波動)
                     inventory_change = abs(current_net_worth - self.prev_net_worth[i])
                     if inventory_change > 0:
                         trade_penalty = 5.0
@@ -313,7 +340,6 @@ class MultiAgentMarketEnv:
                     rewards[i] = delta_pnl
 
                 else:
-                    # 如果代理人數量超過 3 個，預設給予純淨 PnL，避免報錯
                     rewards[i] = delta_pnl
 
             # 記錄當前資產供下回合使用
@@ -326,10 +352,11 @@ class MultiAgentMarketEnv:
         return {i: next_state for i in range(self.num_agents)}, rewards, dones, infos
 
 
-def flatten_state(state_dict, portfolio, depth=5):
+def flatten_state(state_dict, portfolio, sentiment_score, depth=5):
     """
     將環境輸出的 state 轉換為神經網路可吃的 1D numpy array
-    輸出維度: 買價量(10) + 賣價量(10) + 現金(1) + 庫存(1) = 22
+    [修改] 引入文本情緒分數，神經網路輸入維度從 22 提升至 23
+    輸出維度: 買價量(10) + 賣價量(10) + 現金(1) + 庫存(1) + 情緒分數(1) = 23
     """
     features = []
 
@@ -353,4 +380,30 @@ def flatten_state(state_dict, portfolio, depth=5):
     features.append(float(portfolio["cash"]))
     features.append(float(portfolio["inventory"]))
 
+    # [新增] 加入外部大環境變數 (LLM 情緒分數)
+    features.append(float(sentiment_score))
+
     return np.array(features, dtype=np.float32)
+
+
+def calculate_financial_metrics(net_worth_history):
+    """
+    [新增] 計算專業量化交易指標 (夏普比率與最大回撤)
+    """
+    net_worths = np.array(net_worth_history)
+
+    # 計算每一步的收益率 (Returns)
+    returns = np.diff(net_worths) / net_worths[:-1]
+    returns = np.nan_to_num(returns)
+
+    # 計算夏普比率 (Sharpe Ratio)
+    avg_return = np.mean(returns)
+    std_return = np.std(returns)
+    sharpe_ratio = (avg_return / std_return * np.sqrt(252)) if std_return > 0 else 0.0
+
+    # 計算最大回撤 (Maximum Drawdown)
+    peaks = np.maximum.accumulate(net_worths)
+    drawdowns = (net_worths - peaks) / peaks
+    max_drawdown = np.min(drawdowns)
+
+    return sharpe_ratio, max_drawdown
