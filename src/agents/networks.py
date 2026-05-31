@@ -58,9 +58,9 @@ class MlpActorCritic(nn.Module):
         input_dim = np.prod(obs_shape)
         self.feature_extractor = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(input_dim, 128),
+            nn.Linear(input_dim, 64),
             nn.ReLU(),
-            nn.Linear(128, 320),
+            nn.Linear(64, 320),
             nn.ReLU(),
         )
         self.critic = nn.Sequential(

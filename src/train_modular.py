@@ -1,6 +1,7 @@
 import os
 import csv
 import argparse
+import random
 import gymnasium as gym
 import highway_env
 import numpy as np
@@ -12,12 +13,17 @@ import matplotlib.pyplot as plt
 from agents.networks import AttentionActorCritic, MlpActorCritic, MlpQNetwork
 from agents.ppo import PPO
 from agents.dqn import DQNAgent
-from envs.reward_shaper import get_highway_config
+from envs.reward_shaper import get_env_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--root_dir", type=str, default=".")
 # 新增演算法選擇與時長設定
 parser.add_argument("--algo", type=str, default="ppo", choices=["ppo", "dqn"])
+parser.add_argument(
+    "--env", type=str, default="highway-v0",
+    choices=["highway-v0", "merge-v0", "roundabout-v0", "intersection-v0"],
+    help="highway-env environment ID",
+)
 parser.add_argument(
     "--duration", type=int, default=80, help="回合時長(步數)，預設拉長為80步"
 )
@@ -32,10 +38,16 @@ parser.add_argument("--minibatch_size", type=int, default=256)
 parser.add_argument("--ent_coef", type=float, default=0.005)
 parser.add_argument("--disable_lr_decay", action="store_true")
 parser.add_argument("--exp_name", type=str, default="")
+parser.add_argument("--seed", type=int, default=42, help="random seed (numpy/torch/env)")
 args = parser.parse_args()
 
+random.seed(args.seed)
+np.random.seed(args.seed)
+torch.manual_seed(args.seed)
+torch.backends.cudnn.deterministic = True
+
 print(f"=== 🧪 訓練啟動 ({args.algo.upper()}) ===")
-print(f" - 架構: {args.arch} | 風格: {args.style} | 時長: {args.duration}步")
+print(f" - 架構: {args.arch} | 風格: {args.style} | 環境: {args.env} | 時長: {args.duration}步")
 print(f"==============================")
 
 TOTAL_TIMESTEPS = 100000
@@ -49,8 +61,10 @@ models_dir = os.path.join(args.root_dir, "models")
 os.makedirs(logs_dir, exist_ok=True)
 os.makedirs(models_dir, exist_ok=True)
 
+env_short = args.env.replace("-v0", "").replace("-", "_")
 suffix = (
-    f"_dur{args.duration}_{args.exp_name}" if args.exp_name else f"_dur{args.duration}"
+    f"_{env_short}_dur{args.duration}_{args.exp_name}_seed{args.seed}" if args.exp_name
+    else f"_{env_short}_dur{args.duration}_seed{args.seed}"
 )
 base_filename = f"{args.algo}_{args.arch}_{args.style}{suffix}"
 
@@ -62,10 +76,10 @@ csv_file = open(csv_filename, mode="w", newline="")
 csv_writer = csv.writer(csv_file)
 
 # 環境初始化
-config = get_highway_config(args.style, duration=args.duration)
-env = gym.make("highway-v0")
+config = get_env_config(args.env, args.style, duration=args.duration)
+env = gym.make(args.env)
 env.unwrapped.configure(config)
-obs, info = env.reset()
+obs, info = env.reset(seed=args.seed)
 
 # ==========================================
 # 訓練迴圈分支 (PPO vs DQN)
