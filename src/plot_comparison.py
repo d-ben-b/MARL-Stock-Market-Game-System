@@ -32,7 +32,7 @@ def main():
     args = parser.parse_args()
 
     csv_files = glob.glob(
-        os.path.join(args.logs_dir, f"training_log_{args.pattern}*_seed*.csv")
+        os.path.join(args.logs_dir, f"training_log_*{args.pattern}*_seed*.csv")
     )
 
     if not csv_files:
@@ -69,6 +69,18 @@ def main():
 
         if not all_x:
             continue
+
+        # Drop incomplete runs: any seed whose last step is < 50% of the
+        # longest run in the group gets excluded so it doesn't clip x_max.
+        max_last = max(x[-1] for x in all_x)
+        kept = [(x, y) for x, y in zip(all_x, all_y) if x[-1] >= 0.5 * max_last]
+        if len(kept) < len(all_x):
+            dropped = len(all_x) - len(kept)
+            print(f"Note: dropping {dropped} incomplete run(s) from '{base_name}'")
+        if not kept:
+            continue
+        all_x, all_y = zip(*kept)
+        all_x, all_y = list(all_x), list(all_y)
 
         n = len(all_x)
         label = f"{base_name} (n={n})"

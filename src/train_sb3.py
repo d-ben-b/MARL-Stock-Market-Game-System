@@ -98,7 +98,7 @@ def main():
         model.learn(
             total_timesteps=args.total_timesteps,
             callback=callback,
-            progress_bar=True,
+            progress_bar=False,  # rich not installed; CSV callback logs progress
         )
 
     model.save(model_path)
