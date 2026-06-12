@@ -1,0 +1,4 @@
+label,algo,arch,style,seed,crash_rate,avg_survival,avg_speed,avg_lane_changes
+"ATTENTION-PPO (base,s0)",ppo,attention,base,0,0.0,400.0,20.029493087557615,0.0
+"ATTENTION-PPO (base,s1)",ppo,attention,base,1,0.0,400.0,20.029493087557615,0.0
+"ATTENTION-PPO (base,s2)",ppo,attention,base,2,0.0,400.0,20.029493087557615,0.0

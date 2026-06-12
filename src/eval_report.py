@@ -44,9 +44,15 @@ def main():
     ap.add_argument("--pattern", type=str, default="",
                     help="only evaluate models whose filename contains this")
     ap.add_argument("--out", type=str, default="logs/eval_results.csv")
+    ap.add_argument("--model_dir", type=str, action="append", default=None,
+                    help="model directory to search (can be specified multiple times)")
     args = ap.parse_args()
 
-    pths = sorted(glob.glob(os.path.join("models", "*seed*.pth")))
+    model_dirs = args.model_dir if args.model_dir else ["models"]
+    pths = []
+    for d in model_dirs:
+        pths.extend(glob.glob(os.path.join(d, "*seed*.pth")))
+    pths = sorted(set(pths))
     if args.pattern:
         pths = [p for p in pths if args.pattern in os.path.basename(p)]
     jobs = [_parse_name(p) for p in pths]

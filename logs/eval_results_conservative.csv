@@ -1,0 +1,5 @@
+label,algo,arch,style,seed,crash_rate,avg_survival,avg_speed,avg_lane_changes
+"ATTENTION-PPO (conservative,s0)",ppo,attention,conservative,0,0.0,400.0,20.029493087557615,0.0
+"ATTENTION-PPO (conservative,s1)",ppo,attention,conservative,1,0.0,400.0,20.029493087557615,0.0
+"ATTENTION-PPO (conservative,s2)",ppo,attention,conservative,2,100.0,79.93333333333334,24.94802452293101,79.93333333333334
+"MLP-PPO (conservative,s0)",ppo,mlp,conservative,0,0.0,400.0,20.029493087557615,0.0
