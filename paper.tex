@@ -90,33 +90,33 @@ two workhorses of deep RL. Their relative sample efficiency and final behaviour
 on this benchmark are folklore; we measure them under identical conditions.
 \end{enumerate}
 
-\textbf{Positioning.} We emphasise that applying self-attention to an
-ego-plus-$N$-vehicle observation is a \emph{standard} design in
-\code{highway-env}, not a contribution of this work. Our contribution is
-\textbf{engineering and experimental rigour}: a clean from-scratch
-reimplementation, a \emph{fair} ablation (parameter-matched), and an honest,
-statistically-aware report of what does and does not change.
+\textbf{Positioning.} Applying self-attention to an ego-plus-$N$-vehicle
+observation is a \emph{standard} design in \code{highway-env}; reproducing it is
+not our claim to novelty. Our contribution is an \textbf{empirical finding with
+methodological teeth}: under a controlled, parameter-fair comparison we show that
+\emph{episodic return---the metric almost universally reported on this
+benchmark---can be actively misleading for safety-critical control}, and we
+quantify by how much.
 
 \textbf{Contributions.}
 \begin{itemize}
+\item \textbf{The central finding.} Across a parameter-fair ablation, all three
+configurations land within $5.7\%$ on episodic return, yet their deployed crash
+rates differ by an order of magnitude ($11.3\%$ for DQN vs.\ $60$--$80\%$ for
+PPO). We argue this makes \textbf{behaviour-level evaluation a necessary
+complement to return curves} on this benchmark, not an optional extra.
+\item A \textbf{parameter-matched architectural ablation}---Self-Attention
+vs.\ MLP actor--critic ($66.8$k vs.\ $72.3$k parameters, a $7.5\%$ gap)---isolating
+the inductive bias from model capacity, alongside an off-policy Double-DQN
+baseline.
 \item A from-scratch, readable implementation of \textbf{PPO} (GAE, clipped
 surrogate, per-minibatch advantage normalisation, linear LR decay, gradient
 clipping) and \textbf{Double DQN} (replay buffer, $\epsilon$-greedy, target
-network, double-Q target), verified against reference formulations
+network, double-Q target), cross-checked against \textbf{Stable-Baselines3}
 (Section~\ref{sec:methods}).
-\item A \textbf{parameter-matched architectural ablation}---Self-Attention
-vs.\ MLP actor--critic ($66.8$k vs.\ $72.3$k parameters, a $7.5\%$ gap)---isolating
-the effect of the inductive bias rather than model capacity.
-\item \textbf{Multi-seed} training ($n=5$ seeds) with \textbf{mean$\pm$std}
-learning curves, plus a \textbf{Stable-Baselines3 (SB3)} PPO cross-check to
-validate the hand-written implementation.
-\item A \textbf{behaviour-level evaluation} under a \emph{common} test
-configuration incorporating crash rate, survival time, mean speed, and
-lane-change frequency, revealing that episodic return alone is insufficient for
-algorithmic distinction as all methods converge to similar reward ceilings.
-\item A \textbf{reward-shaping study} (conservative / base / aggressive driving
-styles), illustrating that reward specification, not algorithm choice, dominates
-the qualitative driving style and safety profile.
+\item \textbf{Multi-seed} training ($n=5$) with \textbf{mean$\pm$std} learning
+curves, and a \textbf{reward-shaping study} (conservative / base / aggressive)
+showing reward design---not architecture---dominates qualitative driving style.
 \end{itemize}
 
 All claims are scoped to the experimental conditions studied.
@@ -273,10 +273,13 @@ MlpQNetwork          & $20{,}485$ & DQN value net \\
 \end{table}
 
 The attention model has \textbf{$7.5\%$ fewer} parameters than the MLP, so any
-advantage it shows cannot be attributed to extra capacity---the ablation is
-fair. Notably, the DQN Q-network is $3.5\times$ smaller than the PPO
-architectures, making its competitive performance particularly relevant for
-resource-constrained deployment.
+advantage it shows cannot be attributed to extra capacity---the architectural
+ablation is parameter-fair. We stress the scope of this fairness: it controls
+capacity \emph{within} the PPO family (Attention vs.\ MLP). The DQN Q-network is
+$3.5\times$ smaller and is \emph{not} capacity-matched to the PPO networks; the
+PPO-vs-DQN comparison is therefore an \emph{algorithm-family} comparison, not a
+controlled-capacity one. We keep DQN small deliberately, as a lightweight
+off-policy baseline, and report its competitiveness with that caveat in mind.
 
 \section{Experimental Setup}
 \label{sec:setup}
@@ -314,7 +317,7 @@ learned policy.
 
 \subsection{Learning curves (core ablation, aggressive style)}
 Figure~\ref{fig:curves} shows mean$\pm$std rolling-average episodic reward
-across two seeds for the three core configurations.
+across all five seeds for the three core configurations.
 Table~\ref{tab:core} summarises the final performance (mean of the last $10\%$
 of logged updates) and a sample-efficiency proxy (first environment step at
 which the rolling-average reward reaches $150$).
@@ -329,7 +332,7 @@ Shaded bands indicate $\pm$1 std.}
 \end{figure}
 
 \begin{table}[t]
-\caption{Core ablation: aggressive style, \code{highway-v0}, $n=5$ seeds (mean$\pm$std). Final reward is the mean of the last $10\%$ of logged updates. Median steps to rolling-avg$\geq$150 across 5 seeds.}
+\caption{Core ablation: aggressive style, \code{highway-v0}, $n=5$ seeds (mean$\pm\sigma$, population std, ddof$=0$). Final reward is the mean of the last $10\%$ of logged updates. Median steps to rolling-avg$\geq$150 across 5 seeds.}
 \label{tab:core}
 \centering
 \small
@@ -347,8 +350,9 @@ SB3 PPO (ref.)           & 1 & $260.5$                   & $266.7$ & $8{,}192$ \
 \par\footnotesize Max achievable reward $\approx266.7$ (this config). DQN is bolded for lowest cross-seed variance.
 \end{table}
 
-\textbf{Overall convergence.} All three configurations converge to within
-$5.5\%$ of each other in final mean reward ($223.0$--$235.7$), and each
+\textbf{Overall convergence.} The three configurations differ by at most
+$5.7\%$ in final mean reward (the widest gap, PPO+MLP vs.\ PPO+Attention, is
+$12.7$ points, or $5.7\%$ of PPO+MLP's $223.0$), and each
 approaches the approximate theoretical ceiling ($266.7$). This near-parity
 indicates that for this task, architecture or algorithm family does not
 determine how high the agent can eventually perform; all three discover
@@ -379,7 +383,8 @@ placing it \emph{on par} with PPO+Attention ($235.7$). This is notable given
 that DQN uses a $3.5\times$ smaller network ($20{,}485$ parameters vs.\
 ${\sim}67$--$72$k for PPO). Critically, DQN reaches a rolling-avg reward of
 $150$ at a \textbf{median of ${\approx}7{,}721$} environment steps---roughly
-\textbf{16\% fewer steps} than PPO+Attention's ${\approx}10{,}240$---indicating
+\textbf{25\% fewer steps} than PPO+Attention's ${\approx}10{,}240$ (and
+\textbf{16\%} fewer than PPO+MLP's ${\approx}9{,}216$)---indicating
 faster initial learning. The per-update granularity differs (PPO logs at
 1,024-step rollout boundaries while DQN logs at episode boundaries), but the
 total environment-step count is measured consistently.
@@ -413,34 +418,41 @@ others ($100\%$ crash). DQN is markedly more consistent ($11.3\%$ avg).}
 
 The behaviour metrics reveal a striking divergence despite near-identical training
 returns. \textbf{DQN+MLP achieves the lowest crash rate} ($11.3\%$) with
-$368.5$ average survival steps and $155$ lane changes per episode---suggesting
-it learned an active lane-management strategy that navigates around obstacles.
-\textbf{PPO+Attention and PPO+MLP exhibit extreme bimodal behaviour}: some seeds
-converge to a fully passive policy ($0$--$3.3\%$ crash, $\approx 0$ lane
-changes), while others converge to a catastrophically aggressive policy
-($100\%$ crash), yielding high aggregate crash rates of $60.7\%$ and $80.0\%$
-respectively. This bimodal collapse---present in \emph{all} PPO seeds evaluated
-under the base config after aggressive training---suggests that PPO's on-policy
-updates tend to polarise toward local optima rather than learning a robust
-mixed strategy. DQN's experience-replay buffer appears to prevent this
-polarisation by maintaining a more diverse training distribution.
+$368.5$ average survival steps. We caution against an uncritical reading of this:
+DQN also changes lanes \emph{far} more than any other model ($155$ per episode on
+average, with two seeds exceeding $260$---near-continuous lane switching in a
+$400$-step episode). Under the base test reward the lane-change penalty is
+\emph{zero} (Table~\ref{tab:reward}), so persistent swerving is unpunished. The
+low crash rate may therefore be partly an artifact of a degenerate
+``swerve-to-survive'' policy that exploits the absence of a lane-change cost,
+rather than evidence of a genuinely intelligent avoidance strategy. Distinguishing
+the two requires qualitative trajectory inspection; we provide a supplementary
+video for this purpose. In contrast, \textbf{PPO+Attention and PPO+MLP exhibit
+extreme bimodal behaviour}: some seeds converge to a fully passive policy
+($0$--$3.3\%$ crash, $\approx 0$ lane changes), while others converge to a
+catastrophically aggressive policy ($100\%$ crash), yielding high aggregate
+crash rates of $60.7\%$ and $80.0\%$ respectively. This bimodal collapse---present
+in the majority of PPO seeds evaluated under the base config after aggressive
+training---is consistent with PPO's on-policy updates polarising toward local
+optima rather than learning a robust mixed strategy.
 
 \subsection{Stable-Baselines3 cross-validation}
-The SB3 PPO baseline (seed 0, identical hyperparameters to our custom PPO,
-but using an \code{MlpPolicy} $[64,64]$ trunk rather than our attention
-extractor) achieved a final rolling-average reward of \textbf{260.5} and a
-peak of \textbf{266.7}. This value lies within the range of our custom
-PPO+Attention observations (seed 0: $248.8$, seed 1: $255.3$) and above
-the 5-seed mean ($235.7$). The SB3 value is a single-seed measurement and
-thus subject to the same seed-to-seed variability documented above
-($\sigma=16.7$ for our 5 seeds). The key validation is that SB3 follows a
-\emph{nearly identical convergence trajectory} to our custom PPO+Attention
-(Fig.~\ref{fig:curves}, orange curve), confirming that our GAE, clipped
-surrogate objective, advantage normalisation, and learning-rate decay are
-correctly implemented. The residual gap is most plausibly explained by
-architectural differences (SB3's $[64,64]$ shared trunk vs.\ our attention
-extractor) and favourable seed selection, rather than bugs in our
-implementation.
+Because SB3 uses an \code{MlpPolicy} $[64,64]$ trunk, its closest
+architectural counterpart is our custom \textbf{PPO+MLP} ($223.0 \pm 19.6$),
+not the attention model. The SB3 run (seed 0, hyperparameters matched to our
+implementation) reached a final rolling-average reward of \textbf{260.5} and a
+peak of \textbf{266.7}. This single-seed value exceeds \emph{every} one of our
+custom PPO seeds (best individual: PPO+Attention seed 1, $255.3$; best PPO+MLP
+seed, $248.4$) and sits ${\approx}17\%$ above our PPO+MLP 5-seed mean. We read
+this gap not as evidence that our PPO is broken---our implementation reaches the
+same peak ($266.7$) and the same qualitative learning dynamics (rapid rise
+before ${\approx}10$k steps, then a high plateau)---but as a reflection of SB3's
+mature engineering defaults (orthogonal initialisation, running observation
+normalisation, tuned optimiser $\epsilon$) that we did not all replicate.
+Because SB3 is a single seed against our five, this is a directional sanity
+check on correctness, not a like-for-like performance claim; a fully fair
+comparison would require multi-seed SB3 runs with the identical feature
+extractor.
 
 \subsection{Reward-shaping study}
 \label{sec:styles}
@@ -496,16 +508,14 @@ steps), seed 2 catastrophic (100\% crash, 80 steps). Aggressive: seeds 0,3 safe 
 seeds 1,2,4 catastrophic (100\% crash).}
 \end{table}
 
-Even when evaluated under the same base test configuration, models trained under
-different reward styles exhibit markedly different driving behaviours. The
-conservative-trained policy is highly bimodal: 2 of 3 seeds converge to a
-passive safe policy (0\% crash, 0 lane changes), while 1 seed converges to a
-catastrophically aggressive policy (100\% crash, 80 lane changes per episode).
-The aggressive-trained policy maintains maximum speed and changes lanes
-frequently, but occasionally collides. These differences arise not from
-architectural choices but entirely from the reward specification, confirming that
-reward design is the primary lever for safety-critical autonomous driving
-applications.
+Even under the same base test configuration, models trained under different
+reward styles drive markedly differently (Table~\ref{tab:behavior_styles}): the
+base-trained policy is uniformly safe ($0\%$ crash), the aggressive-trained
+policy is fastest but crashes most, and the conservative-trained policy splits
+bimodally across seeds (the per-seed breakdown is examined in
+Sec.~\ref{sec:discussion}). These differences arise from the reward
+specification rather than the architecture, confirming reward design as the
+primary lever for qualitative driving style.
 
 \begin{figure}[t]
 \centering
@@ -522,7 +532,7 @@ differing reward coefficients (see Table~\ref{tab:reward}).}
 \textbf{Reward parity vs.\ behavioural divergence.} The core finding of the
 ablation is that a parameter-matched attention architecture, a plain MLP, and a
 simpler DQN all converge to statistically comparable final episodic returns
-($223$--$235$, within $5.5\%$ of each other). However, this near-parity in
+($223$--$235$, a maximum gap of $5.7\%$). However, this near-parity in
 aggregate reward masks profound differences in the learned policies. As shown in
 Table~\ref{tab:eval}, despite similar training returns, DQN achieves a robust
 lane-management strategy with an $11.3\%$ crash rate, while PPO variants
@@ -536,7 +546,8 @@ failure mode that only multi-seed behavioural evaluation can expose.
 \textbf{The stabilising effect of off-policy replay.} Contrary to expectations
 that a more complex feature extractor (Self-Attention) would inherently yield
 more stable control, Double DQN emerges as both the most stable learner
-($\sigma=7.7$) and the safest policy at deployment. We attribute this to the
+($\sigma=7.7$) and the lowest-crash policy at deployment (subject to the swerving
+caveat of Sec.~\ref{sec:behav}). We attribute the \emph{training stability} to the
 fundamental difference in how experience is utilised. In the collision-heavy
 early learning phase, PPO's on-policy updates are highly susceptible to the
 non-stationarity of recent rollouts, leading some seeds to polarise toward
@@ -551,7 +562,7 @@ architecture.
 
 \textbf{Sample efficiency: why DQN learns faster initially.} Double DQN reaches
 rolling-avg reward $\geq$150 at a median of ${\approx}7{,}721$ environment steps,
-roughly \textbf{16\%} earlier than PPO+Attention (${\approx}10{,}240$) and
+roughly \textbf{25\%} earlier than PPO+Attention (${\approx}10{,}240$) and
 \textbf{16\%} earlier than PPO+MLP (${\approx}9{,}216$). This aligns with
 a well-known property of off-policy learning: experience replay allows DQN to
 reuse early collision-heavy transitions many times, smoothing the otherwise
@@ -561,21 +572,19 @@ experience before gradients stabilise. However, the early-learning advantage of
 DQN does not persist to convergence: all methods ultimately reach similar final
 rewards (${\sim}223$--$235$).
 
-\textbf{Behaviour-level evaluation amplifies DQN's advantage.}
-Table~\ref{tab:eval} reveals that the training-reward parity ($223$--$235$)
-dramatically understates DQN's practical advantage. Evaluated under the base
-test configuration, DQN achieves a crash rate of only $\mathbf{11.3\%}$ with
-$368.5$ survival steps and $155$ lane changes per episode, indicating an active
-lane-management strategy. PPO+Attention and PPO+MLP collapse to bimodal
-behaviour: crash rates of $60.7\%$ and $80.0\%$ respectively, driven by the
-majority of seeds converging to a $100\%$ crash policy. We attribute this to
-PPO's on-policy updates: when trained under the aggressive reward's strong
-speed incentive, PPO tends to polarise---some seeds learn a passive avoidance
-heuristic while others overfit to a high-speed, crash-prone strategy.
-DQN's replay buffer, by contrast, maintains a diverse training distribution
-that prevents this polarisation, yielding more deployable policies on average.
-This finding strengthens the case for off-policy methods in safety-critical
-settings.
+\textbf{A caveat on causality: train/test distribution shift.} All models were
+trained under the \emph{aggressive} style but evaluated under the \emph{base}
+style---an intentional distribution shift that places every policy on a common
+yardstick. This design carries a confound we state plainly: DQN's lower crash
+rate may reflect that its policy \emph{transfers} better across reward
+distributions, rather than that off-policy replay confers \emph{intrinsic}
+safety. We therefore present the replay-buffer explanation as a plausible
+\emph{association}, not a proven cause. Cleanly separating the two would require
+evaluating each model under its own (aggressive) training distribution as well;
+this is the most immediate follow-up. What the present data \emph{do} support
+unambiguously is the headline point: near-tied episodic returns ($223$--$235$)
+can hide an order-of-magnitude difference in deployed crash rate
+($11.3\%$ vs.\ $60$--$80\%$).
 
 \textbf{Reward shaping dominates---but variance qualifies the claim.}
 Table~\ref{tab:behavior_styles} reveals a nuanced picture. The base-trained
@@ -602,14 +611,14 @@ distribution but unsafe under slightly different test conditions. Reward
 engineering remains the \emph{primary} design lever, but practitioners should
 validate with multi-seed behavioural evaluation---not just aggregate reward.
 
-\textbf{Implementation correctness.} The SB3 PPO reference (seed 0, $260.5$)
-follows a convergence trajectory consistent with our custom PPO+Attention
-($235.7 \pm 16.7$, $n=5$ seeds). The SB3 value is within reach of our
-best-performing seeds (seed 1: $255.3$) and above our 5-seed mean, consistent
-with favourable seed selection rather than a systematic implementation advantage.
-The nearly identical convergence trajectory (Fig.~\ref{fig:curves}) provides
-reasonable evidence that our GAE, clipped surrogate, advantage normalisation,
-and linear LR decay are correctly implemented.
+\textbf{Implementation correctness.} Our custom PPO reaches the same reward
+ceiling ($266.7$ peak) and the same qualitative learning dynamics as the SB3
+reference, supporting the correctness of our GAE, clipped surrogate, advantage
+normalisation, and linear LR decay. We are deliberately cautious here: SB3's
+single-seed $260.5$ exceeds all of our PPO seeds, so we claim only that our
+implementation is \emph{in the same regime}, not that it matches SB3's tuned
+defaults. A definitive correctness check would require multi-seed SB3 runs with
+our exact architecture.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -627,7 +636,14 @@ configurations may not be fully converged. Hyperparameters were matched, not
 individually tuned.
 \item \textbf{DQN is intentionally a simplified baseline} (smaller net, no
 attention variant, aggressive $\epsilon$-decay); it bounds, rather than
-maximises, off-policy performance.
+maximises, off-policy performance. It is also \emph{not} capacity-matched to the
+PPO networks, so PPO-vs-DQN is an algorithm-family comparison, not a
+controlled-capacity one.
+\item \textbf{Train/test distribution shift.} Models are trained under the
+aggressive style and evaluated under the base style. This gives a common
+yardstick but confounds \emph{intrinsic} safety with \emph{transfer}: DQN's
+lower crash rate may partly reflect better cross-distribution transfer. The
+behavioural causal claims are therefore associational.
 \end{itemize}
 
 \section{Conclusion}
@@ -635,25 +651,24 @@ We presented a from-scratch reproduction and parameter-matched architectural
 ablation of PPO and Double DQN on the discrete-action \code{highway-env} driving
 simulator ($n=5$ seeds per configuration). Three key findings emerge:
 
-\textbf{(1) Architecture parity at convergence.} Under the aggressive reward
-style on \code{highway-v0}, all three configurations---PPO with Self-Attention
-($235.7 \pm 16.7$), PPO with MLP ($223.0 \pm 19.6$), and Double DQN
-($234.1 \pm 7.7$)---approach the same theoretical reward ceiling
-(${\approx}266.7$), with final means within $5.5\%$ of each other. This
-near-parity highlights the practical viability of lightweight architectures
-(MLP or $20$k-param DQN) for hardware-constrained edge deployment without
-sacrificing driving performance.
+\textbf{(1) Return parity across architecture and algorithm.} Under the
+aggressive reward style on \code{highway-v0}, all three configurations---PPO
+with Self-Attention ($235.7 \pm 16.7$), PPO with MLP ($223.0 \pm 19.6$), and
+Double DQN ($234.1 \pm 7.7$)---approach the same theoretical reward ceiling
+(${\approx}266.7$), with final means differing by at most $5.7\%$. Architecture
+and algorithm family barely affect \emph{how high} the agent scores---which is
+exactly what makes episodic return an unreliable basis for choosing between them.
 
-\textbf{(2) DQN as the most stable, sample-efficient, and deployable learner.}
-Double DQN achieves the \emph{lowest} cross-seed variance ($\sigma=7.7$) and
-the fastest early learning (median ${\approx}7{,}721$ steps to avg$\geq$150).
-Critically, this advantage extends to deployment: behavioural evaluation reveals
-a crash rate of only $11.3\%$ for DQN versus $60.7\%$ (PPO+Attention) and
-$80.0\%$ (PPO+MLP) under a common base test configuration. PPO models trained
-under the aggressive reward exhibit extreme bimodal behaviour ($0$--$3.3\%$
-crash in some seeds; $100\%$ crash in others), while DQN's replay buffer
-prevents this polarisation. All three effects trace back to experience replay
-smoothing gradient variance across the collision-heavy early exploration phase.
+\textbf{(2) Return parity hides an order-of-magnitude behavioural gap.} Despite
+near-tied returns, behavioural evaluation under a common base test configuration
+reveals crash rates of $11.3\%$ (DQN) versus $60.7\%$ (PPO+Attention) and
+$80.0\%$ (PPO+MLP). DQN is also the most stable learner ($\sigma=7.7$) and the
+fastest to reach avg$\geq$150 (median ${\approx}7{,}721$ steps). We attribute
+DQN's \emph{training} stability to experience replay smoothing gradient variance;
+its lower crash rate, however, we report cautiously---it is partly confounded by
+train/test distribution shift and by an unpenalised swerving strategy
+(Sec.~\ref{sec:behav}), and is best read as an association, not proof of
+intrinsic safety.
 
 \textbf{(3) Reward shaping as primary lever---with an important variance caveat.}
 A conservative-vs.-base-vs.-aggressive reward-shaping study confirms that
@@ -666,10 +681,11 @@ converge to the intended behavioural basin. Multi-seed behavioural evaluation
 is therefore a necessary complement to reward design for safety-critical
 deployment.
 
-\textbf{Future work} could evaluate a prioritised-replay DQN variant to further
-reduce its variance, extend the ablation to \code{merge-v0} and
-\code{roundabout-v0} for environment generalisation, and quantify inference-time
-and memory advantages of lightweight architectures on embedded automotive hardware.
+\textbf{Future work} should evaluate each policy under its \emph{own} (aggressive)
+training distribution to disentangle transfer from intrinsic safety, extend the
+ablation to \code{merge-v0} and \code{roundabout-v0} for environment
+generalisation, and test a prioritised-replay DQN variant to probe whether the
+stability advantage strengthens.
 
 \begin{thebibliography}{1}
 
