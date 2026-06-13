@@ -512,14 +512,19 @@ aggressive   & 0--4    & $235.7 \pm 16.7$ & $266.7$ \\
 \end{tabular}
 \end{table}
 
-The apparent ordering (conservative $>$ base $>$ aggressive in absolute reward)
-does \textbf{not} imply conservative is the ``best'' policy. The reward
+The apparent ordering (conservative outscoring base and aggressive in absolute
+reward) does \textbf{not} imply conservative is the ``best'' policy. The reward
 functions differ fundamentally: conservative targets low speed ($[10,20]$~m/s),
 penalises lane changes ($-0.5$), and incurs a smaller collision penalty ($-2.0$),
 incentivising slow, stable driving that accumulates many small rewards over the
 full 400-step horizon. Aggressive targets high speed ($[30,40]$~m/s), rewards
 lane changes ($+0.2$), and imposes a heavy collision penalty ($-4.0$); a single
-crash can wipe out many steps of reward, depressing absolute return. The
+crash can wipe out many steps of reward, depressing absolute return. As
+illustrated in Figure~\ref{fig:styles}, the absolute return trajectories
+fundamentally decouple early in training---by roughly the first $10\%$ of
+updates the conservative curve already sits well above base and aggressive---reflecting
+these diverging optimisation targets rather than any difference in algorithmic
+capacity, since all three curves are the same PPO+Attention model. The
 comparison is \emph{meaningless} across styles; the point of this study is the
 \emph{behavioural} contrast revealed by Table~\ref{tab:behavior_styles}.
 
