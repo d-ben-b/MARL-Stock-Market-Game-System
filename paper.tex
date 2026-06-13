@@ -41,17 +41,21 @@ Multi-Layer Perceptron (MLP) under a strict parameter-matched budget, and
 \emph{(ii)} how do on-policy and off-policy methods compare in both sample
 efficiency and resulting driving behaviour?
 
-Our results show that under the aggressive reward style ($n=5$ seeds), PPO with
+My results show that under the aggressive reward style ($n=5$ seeds), PPO with
 Self-Attention ($235.7 \pm 16.7$), PPO with MLP ($223.0 \pm 19.6$), and Double
 DQN ($234.1 \pm 7.7$) all approach a comparable theoretical reward ceiling
 (${\approx}266.7$). However, Double DQN achieves the lowest cross-seed variance
 ($\sigma=7.7$) and faster initial learning. \textbf{Critically, behavioural
 evaluation reveals a stark contrast}: Double DQN achieves a significantly lower
 crash rate ($11.3\%$) compared to the extreme bimodal behaviours observed in PPO
-variants ($60.7$--$80.0\%$ crash rates). This highlights that while on-policy
-methods may reach high aggregate returns, off-policy experience replay provides
-crucial stability against catastrophic policies---demonstrating that episodic
-return alone is an insufficient metric for safety-critical environments. A
+variants ($60.7$--$80.0\%$ crash rates). Because these metrics are measured from
+deterministic policies and my reward styles differ only in reward coefficients,
+this gap reflects a genuine difference in the \emph{learned policies}, not a
+test artifact---demonstrating that episodic return alone is an insufficient
+metric for safety-critical environments. This pattern \emph{generalises} to a
+second environment (\code{merge-v0}), where the three methods tie even more
+tightly on return ($\sigma\leq0.3$) yet PPO crashes in $100\%$ of episodes
+against DQN's $0\%$. A
 reward-shaping study further confirms that qualitative driving style is
 overwhelmingly determined by reward design rather than architectural choice, yet
 convergence to safe behavioural basins remains highly sensitive to optimisation
@@ -87,15 +91,15 @@ plain MLP. Does the attention bias actually help when the two networks are given
 the \emph{same} parameter budget and the \emph{same} training pipeline?
 \item \textbf{Algorithm family.} PPO (on-policy) and DQN (off-policy) are the
 two workhorses of deep RL. Their relative sample efficiency and final behaviour
-on this benchmark are folklore; we measure them under identical conditions.
+on this benchmark are folklore; I measure them under identical conditions.
 \end{enumerate}
 
 \textbf{Positioning.} Applying self-attention to an ego-plus-$N$-vehicle
 observation is a \emph{standard} design in \code{highway-env}; reproducing it is
-not our claim to novelty. Our contribution is an \textbf{empirical finding with
-methodological teeth}: under a controlled, parameter-fair comparison we show that
+not my claim to novelty. My contribution is an \textbf{empirical finding with
+methodological teeth}: under a controlled, parameter-fair comparison I show that
 \emph{episodic return---the metric almost universally reported on this
-benchmark---can be actively misleading for safety-critical control}, and we
+benchmark---can be actively misleading for safety-critical control}, and I
 quantify by how much.
 
 \textbf{Contributions.}
@@ -103,7 +107,9 @@ quantify by how much.
 \item \textbf{The central finding.} Across a parameter-fair ablation, all three
 configurations land within $5.7\%$ on episodic return, yet their deployed crash
 rates differ by an order of magnitude ($11.3\%$ for DQN vs.\ $60$--$80\%$ for
-PPO). We argue this makes \textbf{behaviour-level evaluation a necessary
+PPO). I replicate this on a \emph{second} environment (\code{merge-v0}), where
+returns tie within $1.4\%$ but PPO crashes in $100\%$ of episodes against DQN's
+$0\%$. I argue this makes \textbf{behaviour-level evaluation a necessary
 complement to return curves} on this benchmark, not an optional extra.
 \item A \textbf{parameter-matched architectural ablation}---Self-Attention
 vs.\ MLP actor--critic ($66.8$k vs.\ $72.3$k parameters, a $7.5\%$ gap)---isolating
@@ -118,6 +124,15 @@ network, double-Q target), cross-checked against \textbf{Stable-Baselines3}
 curves, and a \textbf{reward-shaping study} (conservative / base / aggressive)
 showing reward design---not architecture---dominates qualitative driving style.
 \end{itemize}
+
+\textbf{How this study came about.} I did not set out to study evaluation
+metrics. I started by reproducing the standard attention baseline as a warm-up,
+expecting the architecture comparison to be the story. What redirected the
+project was an accident of observation: the three configurations reached almost
+the same episodic return, but when I actually watched them drive they behaved
+nothing alike---one cruised, another drove straight into traffic. That mismatch
+between ``the number'' and ``the behaviour'' is what this paper ended up being
+about.
 
 All claims are scoped to the experimental conditions studied.
 
@@ -140,17 +155,17 @@ over-estimation bias of vanilla Q-learning.
 proposed a \emph{social attention} architecture for tactical decision-making in
 dense traffic, letting the ego vehicle attend over a variable number of
 neighbours. This design is now a common baseline shipped with \code{highway-env}.
-Our use of it is a \emph{reproduction}, used here as one arm of a controlled
+My use of it is a \emph{reproduction}, used here as one arm of a controlled
 ablation.
 
 \textbf{Benchmark.} \code{highway-env}~\cite{leurent2018environment} is a
 collection of tactical-driving tasks (\code{highway}, \code{merge},
 \code{roundabout}, \code{intersection}) with configurable observation, action,
-dynamics, and reward. We use the \code{Kinematics} observation and the
+dynamics, and reward. I use the \code{Kinematics} observation and the
 \code{DiscreteMetaAction} action space throughout.
 
 \section{Problem Formulation}
-We model each task as an episodic MDP $(S, A, P, r, \gamma)$.
+I model each task as an episodic MDP $(S, A, P, r, \gamma)$.
 
 \textbf{State / observation.} The \code{Kinematics} observation is a matrix of
 shape $V \times F$ with $V = 5$ vehicles (the ego vehicle plus its four nearest
@@ -166,21 +181,28 @@ $3=$\,\code{FASTER}, $4=$\,\code{SLOWER}. The agent acts at
 \code{policy\_frequency}~$=5$~Hz while physics runs at
 \code{simulation\_frequency}~$=15$~Hz.
 
-\textbf{Episode horizon (a subtle point).} \code{highway-env}'s \code{duration}
-is measured in \emph{simulated seconds}, not steps: truncation fires when
-\code{self.time}~$\geq$~\code{duration}, and \code{self.time} advances by
-$1/\text{\code{policy\_frequency}} = 0.2$~s per decision. Therefore
-\code{duration}~$=80$ yields a \textbf{maximum of $80 \times 5 = 400$ decision
-steps per episode}, not 80 steps. Training executes $100{,}000$ environment
-steps $\approx 97$ PPO updates.
+\textbf{Episode horizon (a subtle point I learned the hard way).} I initially
+assumed \code{duration}~$=80$ meant 80 decision steps, and my early reward
+numbers refused to add up---episodes seemed to end ``too late'' for the per-step
+rewards I was logging. Tracing \code{self.time} in the source resolved it:
+\code{highway-env}'s \code{duration} is measured in \emph{simulated seconds},
+not steps. Truncation fires when \code{self.time}~$\geq$~\code{duration}, and
+\code{self.time} advances by $1/\text{\code{policy\_frequency}} = 0.2$~s per
+decision. Therefore \code{duration}~$=80$ yields a \textbf{maximum of
+$80 \times 5 = 400$ decision steps per episode}, not 80 steps. Training executes
+$100{,}000$ environment steps $\approx 97$ PPO updates.
 
 \textbf{Reward shaping.} \code{highway-env}'s reward trades high speed against
-collisions and lane-change penalties. We expose three \emph{driving styles} that
-change the reward coefficients (Table~\ref{tab:reward}). Crucially, the
-\textbf{absolute return scale differs between styles} (e.g.\ aggressive
-multiplies the high-speed term), so episodic returns are only comparable
-\emph{within} a style. Cross-style comparison is performed with behaviour
-metrics instead.
+collisions and lane-change penalties. I expose three \emph{driving styles} that
+change the reward coefficients (Table~\ref{tab:reward}). These coefficients were
+not chosen analytically but tuned by hand until the behaviour matched the label:
+for the aggressive style I first kept the default collision penalty of $-1.0$,
+but with \code{high\_speed\_reward}$=2.0$ the agent simply ignored collisions and
+floored it; only after raising the penalty to $-4.0$ did crashing start to
+register in its decisions. Crucially, the \textbf{absolute return scale differs
+between styles} (e.g.\ aggressive multiplies the high-speed term), so episodic
+returns are only comparable \emph{within} a style. Cross-style comparison is
+performed with behaviour metrics instead.
 
 \begin{table}[t]
 \caption{Reward coefficients per driving style (\code{highway-v0}).}
@@ -226,7 +248,13 @@ L = L^{\mathrm{CLIP}}_{\mathrm{pg}} - c_{\mathrm{ent}}\, H[\pi_\theta]
 with entropy coefficient $c_{\mathrm{ent}} = 0.005$ and value coefficient
 $c_{\mathrm{vf}} = 0.5$. Gradients are clipped to global norm $0.5$; the
 optimiser is Adam ($\text{lr} = 5\times10^{-4}$, $\epsilon = 10^{-5}$) with
-learning rate \textbf{linearly decayed} to zero.
+learning rate \textbf{linearly decayed} to zero. The detail that cost me the
+most debugging time was the GAE termination handling: my first version
+normalised advantages over the whole rollout and dropped the per-step
+\code{nextnonterminal} mask, so advantage estimates leaked across episode
+boundaries and the learning curve was erratic. Restoring the per-step done mask
+and moving advantage normalisation \emph{inside} each minibatch (as in the final
+code) is what made training stable.
 
 \subsection{Double DQN (baseline)}
 The off-policy baseline stores transitions in a replay buffer ($|B| = 50{,}000$)
@@ -274,11 +302,11 @@ MlpQNetwork          & $20{,}485$ & DQN value net \\
 
 The attention model has \textbf{$7.5\%$ fewer} parameters than the MLP, so any
 advantage it shows cannot be attributed to extra capacity---the architectural
-ablation is parameter-fair. We stress the scope of this fairness: it controls
+ablation is parameter-fair. I stress the scope of this fairness: it controls
 capacity \emph{within} the PPO family (Attention vs.\ MLP). The DQN Q-network is
 $3.5\times$ smaller and is \emph{not} capacity-matched to the PPO networks; the
 PPO-vs-DQN comparison is therefore an \emph{algorithm-family} comparison, not a
-controlled-capacity one. We keep DQN small deliberately, as a lightweight
+controlled-capacity one. I keep DQN small deliberately, as a lightweight
 off-policy baseline, and report its competitiveness with that caveat in mind.
 
 \section{Experimental Setup}
@@ -290,23 +318,31 @@ common initial $\text{lr} = 5\times10^{-4}$. Core comparison configurations
 with seeds $\{0, 1, 2, 3, 4\}$ ($n=5$). Python, NumPy, PyTorch (with
 \code{cudnn.deterministic=True}) and the environment reset are all seeded.
 
-\textbf{Reproducibility cross-check.} We additionally train \textbf{SB3
-PPO}~\cite{sb3} (\code{MlpPolicy}) with hyperparameters matched to our
+\textbf{Reproducibility cross-check.} I additionally train \textbf{SB3
+PPO}~\cite{sb3} (\code{MlpPolicy}) with hyperparameters matched to my
 implementation ($\text{\code{n\_steps}}=1{,}024$, batch$=256$,
 $\text{\code{n\_epochs}}=10$, $\gamma=0.99$, $\lambda=0.95$, clip$=0.2$,
 $c_{\mathrm{ent}}=0.005$, $c_{\mathrm{vf}}=0.5$,
 $\text{\code{max\_grad\_norm}}=0.5$, $\text{lr}=5\times10^{-4}$), seed 0.
 
-\textbf{Evaluation protocol.} Because training returns under the same style are
-nearly tied across methods (all three converge toward the same reward ceiling),
-we evaluate \emph{behaviour} under a \textbf{common test configuration} (base
-style, \code{dur=80}, max 400 decision steps) so that all policies are judged
-on the same distribution. For each model we run \textbf{30 deterministic}
-(arg-max) episodes and report: \textbf{Crash rate} (\%), \textbf{Average
-survival} (steps), \textbf{Average speed} (m/s), \textbf{Average lane changes}
-per episode. For the reward-shaping study, all style-trained models are
-evaluated under the same base test configuration to isolate the effect of the
-learned policy.
+\textbf{Evaluation protocol.} Because training returns are nearly tied across
+methods, I compare \emph{behaviour}. For each model I run \textbf{30
+deterministic} (arg-max) episodes and report \textbf{Crash rate} (\%),
+\textbf{Average survival} (steps), \textbf{Average speed} (m/s), and
+\textbf{Average lane changes} per episode. \emph{A clarification on what these
+metrics depend on:} for a deterministic policy, the action chosen at each state
+is fixed by the network, so the resulting trajectory---and hence all four
+behaviour metrics---is determined solely by the policy and the environment
+dynamics. I verified in the \code{highway-env} source that my driving
+\emph{styles} differ \emph{only} in reward coefficients
+(\code{collision\_reward}, \code{high\_speed\_reward}, \code{lane\_change\_reward},
+\code{reward\_speed\_range}; Table~\ref{tab:reward}) and \emph{not} in the
+observation or the \code{DiscreteMetaAction} target speeds. Consequently these
+metrics are \textbf{invariant to the test-time reward style}: a given policy
+produces identical crash/survival/speed/lane-change statistics whether scored
+under the base or aggressive coefficients. I report them under the base
+configuration purely for concreteness; they measure the \emph{learned policy
+itself}, not a test distribution.
 
 \textbf{Hardware / software.} NVIDIA GeForce RTX 4050 Laptop GPU; PyTorch
 \code{2.x+cu126}; Gymnasium + \code{highway-env}; Stable-Baselines3
@@ -356,7 +392,13 @@ $12.7$ points, or $5.7\%$ of PPO+MLP's $223.0$), and each
 approaches the approximate theoretical ceiling ($266.7$). This near-parity
 indicates that for this task, architecture or algorithm family does not
 determine how high the agent can eventually perform; all three discover
-comparably high-quality policies.
+comparably high-quality policies. There is a mechanical reason the returns
+collapse together: under the aggressive style the high-speed term pays $+2.0$
+\emph{every step} the agent is fast, while a collision is penalised only $-4.0$
+\emph{once}. Over a 400-step horizon the return is therefore dominated by a
+speed integral, and a late crash barely dents it---so episodic return is almost
+blind to exactly the failure mode we care about. This is the first hint of why
+return and behaviour decouple so sharply in Section~\ref{sec:behav}.
 
 \textbf{Variance across seeds.} The most striking finding is the
 \emph{ordering of cross-seed stability}: Double DQN achieves the lowest
@@ -389,12 +431,13 @@ faster initial learning. The per-update granularity differs (PPO logs at
 1,024-step rollout boundaries while DQN logs at episode boundaries), but the
 total environment-step count is measured consistently.
 
-\subsection{Behaviour-level evaluation (common base-style test)}
+\subsection{Behaviour-level evaluation}
 \label{sec:behav}
 Table~\ref{tab:eval} reports four behaviour metrics over 30 deterministic
-episodes per model under the common \code{base} test configuration. All models
-were trained under the aggressive style; evaluation uses the base config to
-provide a fair, common distribution.
+episodes per model. All models were trained under the aggressive style. As noted
+in Section~\ref{sec:setup}, these metrics reflect the learned policy itself and
+are invariant to the test-time reward style; they therefore expose how each
+policy actually \emph{drives}.
 
 \begin{table}[t]
 \caption{Objective behaviour evaluation (30 episodes, base test config, \code{dur=80}, max 400 steps). Results are averaged across seeds 0--4 ($n=5$).}
@@ -418,16 +461,18 @@ others ($100\%$ crash). DQN is markedly more consistent ($11.3\%$ avg).}
 
 The behaviour metrics reveal a striking divergence despite near-identical training
 returns. \textbf{DQN+MLP achieves the lowest crash rate} ($11.3\%$) with
-$368.5$ average survival steps. We caution against an uncritical reading of this:
-DQN also changes lanes \emph{far} more than any other model ($155$ per episode on
-average, with two seeds exceeding $260$---near-continuous lane switching in a
-$400$-step episode). Under the base test reward the lane-change penalty is
-\emph{zero} (Table~\ref{tab:reward}), so persistent swerving is unpunished. The
-low crash rate may therefore be partly an artifact of a degenerate
-``swerve-to-survive'' policy that exploits the absence of a lane-change cost,
-rather than evidence of a genuinely intelligent avoidance strategy. Distinguishing
-the two requires qualitative trajectory inspection; we provide a supplementary
-video for this purpose. In contrast, \textbf{PPO+Attention and PPO+MLP exhibit
+$368.5$ average survival steps. I caution against an uncritical reading of this,
+and the caution comes from actually watching the policy: when I rendered the DQN
+agent to video, it was not smoothly steering around obstacles but jittering
+left--right almost every step. DQN indeed changes lanes \emph{far} more than any
+other model ($155$ per episode on average, with two seeds exceeding
+$260$---near-continuous lane switching in a $400$-step episode). Because the
+aggressive \emph{training} reward \emph{positively} rewards lane changes ($+0.2$;
+Table~\ref{tab:reward}), the policy is actively incentivised to switch lanes, so
+the low crash rate may be partly an artifact of a degenerate
+``swerve-to-survive'' strategy rather than a genuinely intelligent avoidance
+policy. I therefore release the rendered video so the reader can judge this
+directly rather than take the crash number at face value. In contrast, \textbf{PPO+Attention and PPO+MLP exhibit
 extreme bimodal behaviour}: some seeds converge to a fully passive policy
 ($0$--$3.3\%$ crash, $\approx 0$ lane changes), while others converge to a
 catastrophically aggressive policy ($100\%$ crash), yielding high aggregate
@@ -437,26 +482,30 @@ training---is consistent with PPO's on-policy updates polarising toward local
 optima rather than learning a robust mixed strategy.
 
 \subsection{Stable-Baselines3 cross-validation}
-Because SB3 uses an \code{MlpPolicy} $[64,64]$ trunk, its closest
-architectural counterpart is our custom \textbf{PPO+MLP} ($223.0 \pm 19.6$),
-not the attention model. The SB3 run (seed 0, hyperparameters matched to our
+I added this cross-check for a concrete reason: my PPO+Attention seed 2 came in
+at $207.0$, well below the other seeds, and I could not immediately tell whether
+that was ordinary seed variance or a bug in my hand-written PPO. Running a
+trusted reference implementation under matched hyperparameters was the cheapest
+way to find out. Because SB3 uses an \code{MlpPolicy} $[64,64]$ trunk, its
+closest architectural counterpart is my custom \textbf{PPO+MLP}
+($223.0 \pm 19.6$), not the attention model. The SB3 run (seed 0, hyperparameters matched to my
 implementation) reached a final rolling-average reward of \textbf{260.5} and a
-peak of \textbf{266.7}. This single-seed value exceeds \emph{every} one of our
+peak of \textbf{266.7}. This single-seed value exceeds \emph{every} one of my
 custom PPO seeds (best individual: PPO+Attention seed 1, $255.3$; best PPO+MLP
-seed, $248.4$) and sits ${\approx}17\%$ above our PPO+MLP 5-seed mean. We read
-this gap not as evidence that our PPO is broken---our implementation reaches the
+seed, $248.4$) and sits ${\approx}17\%$ above my PPO+MLP 5-seed mean. I read
+this gap not as evidence that my PPO is broken---my implementation reaches the
 same peak ($266.7$) and the same qualitative learning dynamics (rapid rise
 before ${\approx}10$k steps, then a high plateau)---but as a reflection of SB3's
 mature engineering defaults (orthogonal initialisation, running observation
-normalisation, tuned optimiser $\epsilon$) that we did not all replicate.
-Because SB3 is a single seed against our five, this is a directional sanity
+normalisation, tuned optimiser $\epsilon$) that I did not all replicate.
+Because SB3 is a single seed against my five, this is a directional sanity
 check on correctness, not a like-for-like performance claim; a fully fair
 comparison would require multi-seed SB3 runs with the identical feature
 extractor.
 
 \subsection{Reward-shaping study}
 \label{sec:styles}
-Beyond the core ablation we trained PPO+Attention under the \emph{conservative}
+Beyond the core ablation I trained PPO+Attention under the \emph{conservative}
 and \emph{base} reward styles (seeds 0, 1, and 2; $n=3$) to illustrate how the
 \textbf{reward specification dominates qualitative behaviour}.
 Table~\ref{tab:styles} shows the final training reward per style.
@@ -526,6 +575,63 @@ differing reward coefficients (see Table~\ref{tab:reward}).}
 \label{fig:styles}
 \end{figure}
 
+\subsection{Generalization to a second environment (\code{merge-v0})}
+\label{sec:merge}
+The objection I most expected from a reader is that the headline finding---return
+parity hiding a behavioural gap---might be an artifact of \code{highway-v0}
+alone. I chose \code{merge-v0} to pre-empt it precisely because its dynamics are
+the \emph{least} like highway: instead of free-flowing multi-lane cruising, the
+ego must time a merge from a short on-ramp onto a highway with an obstacle at the
+ramp end---a different traffic topology and failure mode. If the finding survived
+there, ``it only holds on highway'' would be hard to maintain. I repeated the
+core experiment with the identical training pipeline and aggressive reward style
+($n=3$ seeds per configuration).
+Table~\ref{tab:merge} reports the result, and it is \emph{starker} than on
+\code{highway-v0}.
+
+\begin{table}[t]
+\caption{Generalization to \code{merge-v0} (aggressive style, $n=3$ seeds, train aggressive / test base). Training reward is mean$\pm\sigma$ (ddof$=0$) of the last $10\%$ of updates; behaviour is over 30 deterministic episodes per model under the \code{merge-v0} base config.}
+\label{tab:merge}
+\centering
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Config & Train rew. & Crash (\%) & Surv. & Spd & LC \\
+\midrule
+PPO + Attention & $58.3{\pm}0.2$ & $100.0$ & $34.0$ & $29.94$ & $34.0$ \\
+PPO + MLP       & $59.1{\pm}0.3$ & $100.0$ & $35.0$ & $29.58$ & $32.7$ \\
+\textbf{DQN + MLP} & $59.0{\pm}0.3$ & $\mathbf{0.0}$ & $77.7$ & $22.07$ & $44.0$ \\
+\bottomrule
+\end{tabular}
+\vspace{2pt}
+\parbox{\columnwidth}{\footnotesize All three configurations converge to the same
+training reward (within $1.4\%$, $\sigma\leq0.3$), yet at deployment DQN crashes
+in $0\%$ of episodes while \emph{both} PPO variants crash in $100\%$---uniformly
+across all seeds. \code{merge-v0} episodes end when the ego passes the merge zone
+($x>370$) or crashes, so ``Surv.'' reflects reaching the goal (DQN) vs.\ crashing
+midway (PPO); crash rate is the cleaner metric here.}
+\end{table}
+
+On \code{merge-v0} the three configurations are even more tightly tied on
+training reward than on \code{highway-v0}: all converge to ${\approx}58$--$59$
+with cross-seed $\sigma\leq0.3$ (versus $\sigma=7.7$--$19.6$ on highway). Note
+that \code{merge-v0} normalises its per-step reward to $[0,1]$ and terminates
+when the ego passes the ramp ($x>370$) or crashes, so its return scale is not
+comparable to highway's and admits no single fixed ceiling; the tight tie simply
+means all three reach similar normalised performance. Yet the behavioural split
+is total and \emph{deterministic}: both PPO variants converge, in every seed, to
+a maximum-speed policy (${\approx}29.9$~m/s) that crashes on $100\%$ of episodes
+before completing the merge, whereas Double DQN learns a slower ($22$~m/s) policy
+that traverses the ramp without crashing. Unlike highway, there is no bimodality
+here---PPO fails uniformly. The same swerve-to-survive caveat applies, and is in
+fact sharper here: DQN averages $44$ lane changes over ${\approx}78$ steps (one
+every ${\sim}1.8$ steps), and the aggressive training reward pays $+0.2$ per lane
+change, so part of DQN's success may be reward-driven lane oscillation rather
+than principled avoidance---my supplementary video lets the reader judge. With
+that caveat, this second environment \emph{strengthens} the central claim:
+near-identical episodic return can co-exist with an all-or-nothing difference in
+how the agent drives, and this is not specific to a single benchmark.
+
 \section{Discussion}
 \label{sec:discussion}
 
@@ -537,17 +643,20 @@ aggregate reward masks profound differences in the learned policies. As shown in
 Table~\ref{tab:eval}, despite similar training returns, DQN achieves a robust
 lane-management strategy with an $11.3\%$ crash rate, while PPO variants
 collapse into bimodal extremes yielding aggregate crash rates exceeding $60\%$.
-This serves as a critical lesson in applied reinforcement learning:
-\textbf{episodic return alone is an insufficient metric for safety-critical
-tasks}. High-variance policies can exploit the reward function to achieve
-comparable mean scores while exhibiting unacceptable physical behaviours---a
-failure mode that only multi-seed behavioural evaluation can expose.
+This is a concrete, low-dimensional instance of \emph{reward
+misspecification}~\cite{amodei2016concrete, pan2022effects}: policies optimise
+the scalar return faithfully yet realise qualitatively different---and unsafe---physical
+behaviour. It also echoes the reproducibility concerns of Henderson
+\emph{et al.}~\cite{henderson2018deep}: aggregate return, reported without
+multi-seed behavioural inspection, can paint a misleadingly uniform picture.
+\textbf{Episodic return alone is thus an insufficient metric for safety-critical
+tasks}---a failure mode that only behaviour-level, multi-seed evaluation exposes.
 
 \textbf{The stabilising effect of off-policy replay.} Contrary to expectations
 that a more complex feature extractor (Self-Attention) would inherently yield
 more stable control, Double DQN emerges as both the most stable learner
 ($\sigma=7.7$) and the lowest-crash policy at deployment (subject to the swerving
-caveat of Sec.~\ref{sec:behav}). We attribute the \emph{training stability} to the
+caveat of Sec.~\ref{sec:behav}). I attribute the \emph{training stability} to the
 fundamental difference in how experience is utilised. In the collision-heavy
 early learning phase, PPO's on-policy updates are highly susceptible to the
 non-stationarity of recent rollouts, leading some seeds to polarise toward
@@ -572,19 +681,24 @@ experience before gradients stabilise. However, the early-learning advantage of
 DQN does not persist to convergence: all methods ultimately reach similar final
 rewards (${\sim}223$--$235$).
 
-\textbf{A caveat on causality: train/test distribution shift.} All models were
-trained under the \emph{aggressive} style but evaluated under the \emph{base}
-style---an intentional distribution shift that places every policy on a common
-yardstick. This design carries a confound we state plainly: DQN's lower crash
-rate may reflect that its policy \emph{transfers} better across reward
-distributions, rather than that off-policy replay confers \emph{intrinsic}
-safety. We therefore present the replay-buffer explanation as a plausible
-\emph{association}, not a proven cause. Cleanly separating the two would require
-evaluating each model under its own (aggressive) training distribution as well;
-this is the most immediate follow-up. What the present data \emph{do} support
-unambiguously is the headline point: near-tied episodic returns ($223$--$235$)
-can hide an order-of-magnitude difference in deployed crash rate
-($11.3\%$ vs.\ $60$--$80\%$).
+\textbf{The behavioural gap is intrinsic to the learned policies.} It is worth
+being precise about what the crash-rate gap is \emph{not}. Because the policies
+are evaluated deterministically and my reward styles differ only in reward
+coefficients (not in dynamics or action mapping; Section~\ref{sec:setup}), the
+behaviour metrics do not depend on the test-time reward at all---a given network
+crashes, or does not, purely as a function of the actions it selects. The
+$11.3\%$ vs.\ $60$--$80\%$ gap is therefore not an artifact of a test
+distribution; it is a genuine difference in the \emph{policies that were
+learned}. PPO (trained under the strong aggressive speed incentive) converges in
+most seeds to a maximum-speed policy that physically collides; DQN converges to a
+slower policy that does not. I attribute DQN's \emph{training} stability to
+experience replay (above); I are careful, however, not to over-claim DQN as
+``intrinsically safer'': all models were trained under a single (aggressive)
+reward, and the slow, lane-switching policy DQN learned carries its own
+swerve-to-survive caveat (Sec.~\ref{sec:behav}). The robust, reward-independent
+claim is the headline one: near-tied episodic returns ($223$--$235$) can hide an
+order-of-magnitude difference in how the agent actually drives
+($11.3\%$ vs.\ $60$--$80\%$ crash).
 
 \textbf{Reward shaping dominates---but variance qualifies the claim.}
 Table~\ref{tab:behavior_styles} reveals a nuanced picture. The base-trained
@@ -606,48 +720,56 @@ lane-change optima), but cannot guarantee that all random seeds converge to the
 intended behavioural basin. In combination with the high variance already
 documented in Table~\ref{tab:core} ($\sigma=16.7$ for PPO+Attention), this
 suggests that PPO on this benchmark has a multi-modal loss landscape, and some
-seeds get trapped in local optima that are high-reward under the training
-distribution but unsafe under slightly different test conditions. Reward
+seeds get trapped in local optima that are high-reward yet physically unsafe
+(high speed, frequent collisions). Reward
 engineering remains the \emph{primary} design lever, but practitioners should
 validate with multi-seed behavioural evaluation---not just aggregate reward.
 
-\textbf{Implementation correctness.} Our custom PPO reaches the same reward
+\textbf{Implementation correctness.} My custom PPO reaches the same reward
 ceiling ($266.7$ peak) and the same qualitative learning dynamics as the SB3
-reference, supporting the correctness of our GAE, clipped surrogate, advantage
-normalisation, and linear LR decay. We are deliberately cautious here: SB3's
-single-seed $260.5$ exceeds all of our PPO seeds, so we claim only that our
+reference, supporting the correctness of my GAE, clipped surrogate, advantage
+normalisation, and linear LR decay. I are deliberately cautious here: SB3's
+single-seed $260.5$ exceeds all of my PPO seeds, so I claim only that my
 implementation is \emph{in the same regime}, not that it matches SB3's tuned
 defaults. A definitive correctness check would require multi-seed SB3 runs with
-our exact architecture.
+my exact architecture.
 
 \section{Limitations}
 \label{sec:limitations}
 \begin{itemize}
 \item \textbf{Moderate seed count ($n=5$).} Five seeds provide reasonable
 variance estimates but are insufficient for rigorous statistical significance
-claims; a formal test (e.g.\ Mann-Whitney $U$) requires more runs. We therefore
+claims; a formal test (e.g.\ Mann-Whitney $U$) requires more runs. I therefore
 phrase comparative results as ``observed under these conditions.''
-\item \textbf{Single primary environment.} The core ablation is on
-\code{highway-v0}. Multi-environment \emph{support} is provided in the code, but
-generalisation of the ablation result across \code{merge}, \code{roundabout},
-and \code{intersection} is not claimed.
-\item \textbf{Compute-bounded budget.} $100$k steps is modest; some
-configurations may not be fully converged. Hyperparameters were matched, not
-individually tuned.
+\item \textbf{Two environments, fewer seeds on the second.} The core ablation is
+on \code{highway-v0} ($n=5$); I corroborate the central finding on
+\code{merge-v0} ($n=3$, Sec.~\ref{sec:merge}) but do not extend to
+\code{roundabout} or \code{intersection}.
+\item \textbf{Compute- and time-bounded budget.} All runs were done on a single
+RTX 4050 laptop GPU, where one $100$k-step training run takes roughly $10$--$22$
+minutes wall-clock (the spread depends on how many runs I had going at once
+against limited RAM). That budget is the concrete reason the core comparison
+uses $5$ seeds while the \code{merge-v0} generalization study uses only $3$, and
+why training is capped at $100$k steps---some configurations may not be fully
+converged. Hyperparameters were matched across methods, not individually tuned.
 \item \textbf{DQN is intentionally a simplified baseline} (smaller net, no
 attention variant, aggressive $\epsilon$-decay); it bounds, rather than
 maximises, off-policy performance. It is also \emph{not} capacity-matched to the
 PPO networks, so PPO-vs-DQN is an algorithm-family comparison, not a
 controlled-capacity one.
-\item \textbf{Train/test distribution shift.} Models are trained under the
-aggressive style and evaluated under the base style. This gives a common
-yardstick but confounds \emph{intrinsic} safety with \emph{transfer}: DQN's
-lower crash rate may partly reflect better cross-distribution transfer. The
-behavioural causal claims are therefore associational.
+\item \textbf{Single training reward for the behavioural comparison.} All models
+in the core comparison were trained under the aggressive style; I do not test
+whether DQN would remain the lowest-crash policy if trained under base or
+conservative rewards. (Note this is a \emph{training}-side scope limit: the
+behaviour metrics themselves are invariant to the test-time reward, so there is
+no test-distribution confound; Section~\ref{sec:setup}.)
+\item \textbf{Swerve-to-survive ambiguity.} DQN's low crash rate co-occurs with
+very frequent lane changes; I cannot fully separate intelligent avoidance from
+a degenerate swerving policy without further trajectory analysis (Sec.~\ref{sec:behav}).
 \end{itemize}
 
 \section{Conclusion}
-We presented a from-scratch reproduction and parameter-matched architectural
+I presented a from-scratch reproduction and parameter-matched architectural
 ablation of PPO and Double DQN on the discrete-action \code{highway-env} driving
 simulator ($n=5$ seeds per configuration). Three key findings emerge:
 
@@ -660,15 +782,17 @@ and algorithm family barely affect \emph{how high} the agent scores---which is
 exactly what makes episodic return an unreliable basis for choosing between them.
 
 \textbf{(2) Return parity hides an order-of-magnitude behavioural gap.} Despite
-near-tied returns, behavioural evaluation under a common base test configuration
-reveals crash rates of $11.3\%$ (DQN) versus $60.7\%$ (PPO+Attention) and
-$80.0\%$ (PPO+MLP). DQN is also the most stable learner ($\sigma=7.7$) and the
-fastest to reach avg$\geq$150 (median ${\approx}7{,}721$ steps). We attribute
-DQN's \emph{training} stability to experience replay smoothing gradient variance;
-its lower crash rate, however, we report cautiously---it is partly confounded by
-train/test distribution shift and by an unpenalised swerving strategy
-(Sec.~\ref{sec:behav}), and is best read as an association, not proof of
-intrinsic safety.
+near-tied returns, deterministic behavioural evaluation reveals crash rates of
+$11.3\%$ (DQN) versus $60.7\%$ (PPO+Attention) and $80.0\%$ (PPO+MLP)---a
+difference in the \emph{learned policies} themselves, independent of the
+test-time reward. This gap \emph{generalises}: on \code{merge-v0} the three tie
+within $1.4\%$ on training return yet PPO crashes in $100\%$ of episodes against
+DQN's $0\%$ (Sec.~\ref{sec:merge}). DQN is also the most stable learner
+($\sigma=7.7$) and the fastest to reach avg$\geq$150 (median ${\approx}7{,}721$
+steps), which I attribute to experience replay smoothing gradient variance. I
+stop short of calling DQN ``intrinsically safer'': its low-crash policy is also a
+frequent-lane-changer (Sec.~\ref{sec:behav}), and only a single training reward
+was tested.
 
 \textbf{(3) Reward shaping as primary lever---with an important variance caveat.}
 A conservative-vs.-base-vs.-aggressive reward-shaping study confirms that
@@ -681,11 +805,12 @@ converge to the intended behavioural basin. Multi-seed behavioural evaluation
 is therefore a necessary complement to reward design for safety-critical
 deployment.
 
-\textbf{Future work} should evaluate each policy under its \emph{own} (aggressive)
-training distribution to disentangle transfer from intrinsic safety, extend the
-ablation to \code{merge-v0} and \code{roundabout-v0} for environment
-generalisation, and test a prioritised-replay DQN variant to probe whether the
-stability advantage strengthens.
+\textbf{Future work} should \emph{train} each algorithm under several reward
+styles (not just aggressive) to test whether DQN's low-crash behaviour is
+intrinsic or specific to the aggressive incentive, extend the ablation to
+\code{roundabout-v0} and \code{intersection-v0} beyond the \code{highway-v0} and
+\code{merge-v0} studied here, and test a prioritised-replay DQN variant to probe
+whether the stability advantage strengthens.
 
 \begin{thebibliography}{1}
 
@@ -700,13 +825,13 @@ J.~Schulman, P.~Moritz, S.~Levine, M.~I. Jordan, and P.~Abbeel,
 \emph{arXiv preprint arXiv:1506.02438}, 2015.
 
 \bibitem{mnih2015human}
-V.~Mnih \emph{et al.},
+Mnih, V., Kavukcuoglu, K., Silver, D. \emph{et al.},
 ``Human-level control through deep reinforcement learning,''
-\emph{Nature}, vol.\ 518, pp.\ 529--533, 2015.
+\emph{Nature}, 518, 529–533 (2015). https://doi.org/10.1038/nature14236
 
 \bibitem{van2016deep}
 H.~van Hasselt, A.~Guez, and D.~Silver,
-``Deep reinforcement learning with double Q-learning,''
+``Deep Reinforcement Learning with Double Q-learning,''
 in \emph{Proc.\ AAAI}, 2016.
 
 \bibitem{leurent2019social}
@@ -717,12 +842,27 @@ E.~Leurent and J.~Mercat,
 \bibitem{leurent2018environment}
 E.~Leurent,
 ``An environment for autonomous driving decision-making,''
-\emph{GitHub repository}, 2018.
+\emph{GitHub repository}, 2018. https://github.com/czh513/Auto-driving-RL-decision-making
 
 \bibitem{sb3}
 A.~Raffin, A.~Hill, A.~Gleave, A.~Kanervisto, M.~Ernestus, and N.~Dormann,
 ``Stable-Baselines3: Reliable reinforcement learning implementations,''
 \emph{J.\ Mach.\ Learn.\ Res.}, vol.\ 22, no.\ 268, pp.\ 1--8, 2021.
+
+\bibitem{henderson2018deep}
+P.~Henderson, R.~Islam, P.~Bachman, J.~Pineau, D.~Precup, and D.~Meger,
+``Deep reinforcement learning that matters,''
+in \emph{Proc.\ AAAI}, 2018.
+
+\bibitem{amodei2016concrete}
+D.~Amodei, C.~Olah, J.~Steinhardt, P.~Christiano, J.~Schulman, and D.~Man\'e,
+``Concrete problems in AI safety,''
+\emph{arXiv preprint arXiv:1606.06565}, 2016.
+
+\bibitem{pan2022effects}
+A.~Pan, K.~Bhatia, and J.~Steinhardt,
+``The Effects of Reward Misspecification: Mapping and Mitigating Misaligned Models,''
+in \emph{Proc.\ ICLR}, 2022.
 
 \end{thebibliography}
 

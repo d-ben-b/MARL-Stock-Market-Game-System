@@ -1,0 +1,10 @@
+label,algo,arch,style,seed,crash_rate,avg_survival,avg_speed,avg_lane_changes
+"MLP-DQN (aggressive,s0)",dqn,mlp,aggressive,0,0.0,79.0,21.727384415169556,50.0
+"MLP-DQN (aggressive,s1)",dqn,mlp,aggressive,1,0.0,79.0,21.50119582335449,42.0
+"MLP-DQN (aggressive,s2)",dqn,mlp,aggressive,2,0.0,75.0,22.990484759738862,40.0
+"ATTENTION-PPO (aggressive,s0)",ppo,attention,aggressive,0,100.0,34.0,29.941176470588246,34.0
+"ATTENTION-PPO (aggressive,s1)",ppo,attention,aggressive,1,100.0,34.0,29.941176470588246,34.0
+"ATTENTION-PPO (aggressive,s2)",ppo,attention,aggressive,2,100.0,34.0,29.941176470588246,34.0
+"MLP-PPO (aggressive,s0)",ppo,mlp,aggressive,0,100.0,34.0,29.941176470588246,34.0
+"MLP-PPO (aggressive,s1)",ppo,mlp,aggressive,1,100.0,37.0,28.868568312619598,30.0
+"MLP-PPO (aggressive,s2)",ppo,mlp,aggressive,2,100.0,34.0,29.941176470588246,34.0

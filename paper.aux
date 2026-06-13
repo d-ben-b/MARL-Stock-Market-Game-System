@@ -16,44 +16,53 @@
 \@writefile{toc}{\contentsline {section}{\numberline {IV}Methods}{2}{section.4}\protected@file@percent }
 \newlabel{sec:methods}{{IV}{2}{Methods}{section.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}PPO (from scratch)}{2}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Double DQN (baseline)}{2}{subsection.4.2}\protected@file@percent }
 \citation{sb3}
 \@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Parameter budget.}}{3}{table.2}\protected@file@percent }
 \newlabel{tab:params}{{II}{3}{Parameter budget}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Double DQN (baseline)}{3}{subsection.4.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Network Architectures}{3}{subsection.4.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {V}Experimental Setup}{3}{section.5}\protected@file@percent }
 \newlabel{sec:setup}{{V}{3}{Experimental Setup}{section.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Mean$\pm $std rolling-average episodic reward (seeds 0--4) for the three core configurations (aggressive style, \texttt  {highway-v0}, $n=5$ seeds). Shaded bands indicate $\pm $1 std.}}{3}{figure.1}\protected@file@percent }
-\newlabel{fig:curves}{{1}{3}{Mean$\pm $std rolling-average episodic reward (seeds 0--4) for the three core configurations (aggressive style, \code {highway-v0}, $n=5$ seeds). Shaded bands indicate $\pm $1 std}{figure.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Core ablation: aggressive style, \texttt  {highway-v0}, $n=5$ seeds (mean$\pm \sigma $, population std, ddof$=0$). Final reward is the mean of the last $10\%$ of logged updates. Median steps to rolling-avg$\geq $150 across 5 seeds.}}{3}{table.3}\protected@file@percent }
-\newlabel{tab:core}{{III}{3}{Core ablation: aggressive style, \code {highway-v0}, $n=5$ seeds (mean$\pm \sigma $, population std, ddof$=0$). Final reward is the mean of the last $10\%$ of logged updates. Median steps to rolling-avg$\geq $150 across 5 seeds}{table.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Results}{3}{section.6}\protected@file@percent }
 \newlabel{sec:results}{{VI}{3}{Results}{section.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Learning curves (core ablation, aggressive style)}{3}{subsection.6.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Mean$\pm $std rolling-average episodic reward (seeds 0--4) for the three core configurations (aggressive style, \texttt  {highway-v0}, $n=5$ seeds). Shaded bands indicate $\pm $1 std.}}{4}{figure.1}\protected@file@percent }
+\newlabel{fig:curves}{{1}{4}{Mean$\pm $std rolling-average episodic reward (seeds 0--4) for the three core configurations (aggressive style, \code {highway-v0}, $n=5$ seeds). Shaded bands indicate $\pm $1 std}{figure.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Core ablation: aggressive style, \texttt  {highway-v0}, $n=5$ seeds (mean$\pm \sigma $, population std, ddof$=0$). Final reward is the mean of the last $10\%$ of logged updates. Median steps to rolling-avg$\geq $150 across 5 seeds.}}{4}{table.3}\protected@file@percent }
+\newlabel{tab:core}{{III}{4}{Core ablation: aggressive style, \code {highway-v0}, $n=5$ seeds (mean$\pm \sigma $, population std, ddof$=0$). Final reward is the mean of the last $10\%$ of logged updates. Median steps to rolling-avg$\geq $150 across 5 seeds}{table.3}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Objective behaviour evaluation (30 episodes, base test config, \texttt  {dur=80}, max 400 steps). Results are averaged across seeds 0--4 ($n=5$).}}{4}{table.4}\protected@file@percent }
 \newlabel{tab:eval}{{IV}{4}{Objective behaviour evaluation (30 episodes, base test config, \code {dur=80}, max 400 steps). Results are averaged across seeds 0--4 ($n=5$)}{table.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Behaviour-level evaluation (common base-style test)}{4}{subsection.6.2}\protected@file@percent }
-\newlabel{sec:behav}{{\mbox  {VI-B}}{4}{Behaviour-level evaluation (common base-style test)}{subsection.6.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces PPO+Attention final training reward by driving style ($n=3$ seeds, mean$\pm $std). \emph  {Returns are not comparable across styles} (reward coefficients differ substantially; see Table~\ref {tab:reward}).}}{4}{table.5}\protected@file@percent }
-\newlabel{tab:styles}{{V}{4}{PPO+Attention final training reward by driving style ($n=3$ seeds, mean$\pm $std). \emph {Returns are not comparable across styles} (reward coefficients differ substantially; see Table~\ref {tab:reward})}{table.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Stable-Baselines3 cross-validation}{4}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Reward-shaping study}{4}{subsection.6.4}\protected@file@percent }
-\newlabel{sec:styles}{{\mbox  {VI-D}}{4}{Reward-shaping study}{subsection.6.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Behaviour-level evaluation}{4}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:behav}{{\mbox  {VI-B}}{4}{Behaviour-level evaluation}{subsection.6.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces PPO+Attention final training reward by driving style ($n=3$ seeds, mean$\pm $std). \emph  {Returns are not comparable across styles} (reward coefficients differ substantially; see Table~\ref {tab:reward}).}}{5}{table.5}\protected@file@percent }
+\newlabel{tab:styles}{{V}{5}{PPO+Attention final training reward by driving style ($n=3$ seeds, mean$\pm $std). \emph {Returns are not comparable across styles} (reward coefficients differ substantially; see Table~\ref {tab:reward})}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Stable-Baselines3 cross-validation}{5}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-D}}Reward-shaping study}{5}{subsection.6.4}\protected@file@percent }
+\newlabel{sec:styles}{{\mbox  {VI-D}}{5}{Reward-shaping study}{subsection.6.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Reward-shaping behavioural comparison (PPO+Attention, 30 episodes, base test config, seeds 0--2 averaged for conservative and base ($n=3$); seeds 0--4 averaged for aggressive ($n=5$)). Higher survival / lower crash indicates safer driving.}}{5}{table.6}\protected@file@percent }
 \newlabel{tab:behavior_styles}{{VI}{5}{Reward-shaping behavioural comparison (PPO+Attention, 30 episodes, base test config, seeds 0--2 averaged for conservative and base ($n=3$); seeds 0--4 averaged for aggressive ($n=5$)). Higher survival / lower crash indicates safer driving}{table.6}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces PPO+Attention learning curves under three reward styles (conservative, base, aggressive). Returns are \emph  {not} comparable across styles due to differing reward coefficients (see Table~\ref {tab:reward}).}}{5}{figure.2}\protected@file@percent }
 \newlabel{fig:styles}{{2}{5}{PPO+Attention learning curves under three reward styles (conservative, base, aggressive). Returns are \emph {not} comparable across styles due to differing reward coefficients (see Table~\ref {tab:reward})}{figure.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Discussion}{5}{section.7}\protected@file@percent }
-\newlabel{sec:discussion}{{VII}{5}{Discussion}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Generalization to a second environment (\texttt  {merge-v0})}{5}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:merge}{{\mbox  {VI-E}}{5}{Generalization to a second environment (\code {merge-v0})}{subsection.6.5}{}}
+\citation{amodei2016concrete,pan2022effects}
+\citation{henderson2018deep}
+\@writefile{lot}{\contentsline {table}{\numberline {VII}{\ignorespaces Generalization to \texttt  {merge-v0} (aggressive style, $n=3$ seeds, train aggressive / test base). Training reward is mean$\pm \sigma $ (ddof$=0$) of the last $10\%$ of updates; behaviour is over 30 deterministic episodes per model under the \texttt  {merge-v0} base config.}}{6}{table.7}\protected@file@percent }
+\newlabel{tab:merge}{{VII}{6}{Generalization to \code {merge-v0} (aggressive style, $n=3$ seeds, train aggressive / test base). Training reward is mean$\pm \sigma $ (ddof$=0$) of the last $10\%$ of updates; behaviour is over 30 deterministic episodes per model under the \code {merge-v0} base config}{table.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Discussion}{6}{section.7}\protected@file@percent }
+\newlabel{sec:discussion}{{VII}{6}{Discussion}{section.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Limitations}{7}{section.8}\protected@file@percent }
+\newlabel{sec:limitations}{{VIII}{7}{Limitations}{section.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IX}Conclusion}{7}{section.9}\protected@file@percent }
 \bibcite{schulman2017proximal}{1}
-\@writefile{toc}{\contentsline {section}{\numberline {VIII}Limitations}{6}{section.8}\protected@file@percent }
-\newlabel{sec:limitations}{{VIII}{6}{Limitations}{section.8}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {IX}Conclusion}{6}{section.9}\protected@file@percent }
 \bibcite{schulman2015high}{2}
 \bibcite{mnih2015human}{3}
 \bibcite{van2016deep}{4}
 \bibcite{leurent2019social}{5}
 \bibcite{leurent2018environment}{6}
 \bibcite{sb3}{7}
-\@writefile{toc}{\contentsline {section}{References}{7}{section*.1}\protected@file@percent }
-\gdef \@abspage@last{7}
+\bibcite{henderson2018deep}{8}
+\bibcite{amodei2016concrete}{9}
+\bibcite{pan2022effects}{10}
+\@writefile{toc}{\contentsline {section}{References}{8}{section*.1}\protected@file@percent }
+\gdef \@abspage@last{8}

@@ -29,7 +29,7 @@ for algo, arch in CONFIGS:
             "--seed", str(seed),
         ])
 
-MAX_CONCURRENT = 3
+MAX_CONCURRENT = 1  # RAM-limited: ~1.6GB/run, sequential to avoid OOM
 
 
 def run_cmd(cmd):
